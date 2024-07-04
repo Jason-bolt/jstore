@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Helpers\GenericHelpers;
 use App\Interfaces\AuthServiceInterface;
 use App\Jobs\ResendMailJob;
+use App\Jobs\SendResetPasswordMailJob;
 use App\Jobs\UserCreatedJob;
+use App\Models\ResetPasswordOtp;
 use App\Models\User;
 use App\Models\UserOtp;
 use Illuminate\Support\Facades\Hash;
@@ -95,12 +97,19 @@ class AuthService implements AuthServiceInterface {
     
     public function sendResetPassword(string $email)
     {
-        $status = Password::sendResetLink(
-            ["email" => $email]
-        );
+        $generated_otp = GenericHelpers::generateOtp();
+        $user = User::where("email", $email)->first();
+        ResetPasswordOtp::where("user_id", $user->id)->delete();
+        ResetPasswordOtp::create([
+            "user_id"=> $user->id,
+            "otp" => GenericHelpers::jwtEncode($generated_otp)
+        ]);
+        
+        dispatch(new SendResetPasswordMailJob($user->email, $generated_otp));
 
-        dd($status);
-
-        return;
+        return [
+            "user" => $user,
+            "otp" => $generated_otp
+        ];
     }
 }

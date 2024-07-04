@@ -137,11 +137,11 @@ class AuthController extends Controller
             Log::info("User information $request");
             
             DB::beginTransaction();
-            $this->authService->sendResetPassword($email);
+            $mailInfo = $this->authService->sendResetPassword($email);
 
             DB::commit();
 
-            return new GenericResponseResource(null, config('Constants.httpStatusCodes.OK'), "User logged out successfully!");
+            return new GenericResponseResource($mailInfo, config('Constants.httpStatusCodes.OK'), "Reset password mail sent successfully!");
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Exception occurred while logging out user " . $e->getMessage());
